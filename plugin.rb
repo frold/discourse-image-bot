@@ -20,33 +20,17 @@ after_initialize do
   class ::DiscourseChartbot::ChartbotUser < ::User
     def self.chartbot
       @chartbot ||= DiscourseChartbot::ChartbotUser.find_or_initialize_by(username: "ChartBot") do |u|
+        u.id = "-09"
         u.name = "ChartBot"
         u.email = "chartbot@discourse.com"
         u.password = SecureRandom.hex
+        u.active = true
+        u.approved = true
+        u.trust_level = TrustLevel[1]
         u.save!
       end
     end
-  end
- 
-  bot = User.find_by(id: -09)
-
-  # Handles creation of bot if it doesn't exist
-  if !bot
-      response_username = "ChartBot"
-      response_name = "Vores ChartBot"
-  
-      # bot created
-      bot = User.new
-      bot.id = -09
-      bot.name = response_name
-      bot.username = response_username
-      bot.email = "responseBot@me.com"
-      bot.username_lower = response_username.downcase
-      bot.password = SecureRandom.hex
-      bot.active = true
-      bot.approved = true
-      bot.trust_level = TrustLevel[1]
-  end  
+  end 
  
   DiscourseEvent.on(:post_created) do |post|
     if SiteSetting.chartbot_enabled && post.user != DiscourseChartbot::ChartbotUser.chartbot
