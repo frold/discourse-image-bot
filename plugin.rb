@@ -4,6 +4,26 @@
 # authors: Frederik Liljefred
 # url: https://github.com/frold/discourse-image-bot
 
+    bot = User.find_by(id: -07)
+
+    # Handles creation of bot if it doesn't exist
+    if !bot
+        response_username = "ChartBot"
+        response_name = "Vores Finviz Bot"
+    
+        # bot created
+        bot = User.new
+        bot.id = -07
+        bot.name = response_name
+        bot.username = response_username
+        bot.email = "responseBot@me.com"
+        bot.username_lower = response_username.downcase
+        bot.password = SecureRandom.hex
+        bot.active = true
+        bot.approved = true
+        bot.trust_level = TrustLevel[1]
+    end
+
 on(:post_created) do |post, params|
   if post.raw.match?(/@ChartBot\s+(\w+)\s+(\w+)/i)
     tickerid = $1
