@@ -4,57 +4,29 @@
 # authors: Frederik Liljefred
 # url: https://github.com/frold/discourse-image-bot
 
-gem 'mini_magick'
-require 'mini_magick'
-
-enabled_site_setting :chartbot_enabled
+PLUGIN_NAME ||= "chartbot".freeze
 
 after_initialize do
-  module ::DiscourseChartbot
-    class Engine < ::Rails::Engine
-      engine_name "discourse_chartbot"
-      isolate_namespace DiscourseChartbot
-    end
-  end
+  User.create!(
+    id: '-09',
+    username: 'ChartBot',
+    name: 'Vores ChartBot',
+    email: 'chartbot@example.com',
+    password: SecureRandom.hex(10),
+    active: true,
+    approved: true,
+    trust_level: 'TrustLevel[1]'
+  )
+end
 
-  class ::DiscourseChartbot::ChartbotUser < ::User
-    def self.chartbot
-      @chartbot ||= DiscourseChartbot::ChartbotUser.find_or_initialize_by(username: "ChartBot") do |u|
-        u.id = "-09"
-        u.name = "ChartBot"
-        u.email = "chartbot@discourse.com"
-        u.password = SecureRandom.hex
-        u.active = true
-        u.approved = true
-        u.trust_level = TrustLevel[1]
-        u.save!
-      end
-    end
-  end 
- 
-  DiscourseEvent.on(:post_created) do |post|
-    if SiteSetting.chartbot_enabled && post.user != DiscourseChartbot::ChartbotUser.chartbot
-      if post.raw.include?("@ChartBot")
-        variables = post.raw.match(/@ChartBot\s([^\s]+)\s([^\s]+)/)
-        if variables.present?
-          ticker = variables[1]
-          interval = variables[2]
-          url = "https://charts2.finviz.com/chart.ashx?t=#{ticker}&ty=c&ta=0&p=#{interval}&s=l"
-          file = Tempfile.new(["chart-", ".png"])
-          MiniMagick::Tool::Convert.new do |convert|
-            convert.size "800x600"
-            convert << url
-            convert << file.path
-          end
-          post.reply_to_post!(
-            "Here's the chart for #{ticker} on a #{interval} interval:",
-            user: DiscourseChartbot::ChartbotUser.chartbot,
-            skip_validations: true,
-            auto_track: false,
-            uploaded_files: [Upload.create_from(file.path, file, "image/png")]
-          )
-        end
-      end
-    end
+on(:post_created) do |post, params|
+  if post.raw.match?(/@ChartBot\s+(\w+)\s+(\w+)/i)
+    tickerid = $1
+    tiden = $2
+    link = "https://charts2.finviz.com/chart.ashx?t=#{tickerid}&ty=c&ta=0&p=#{tiden}&s=l"
+    post.topic.posts.create!(
+      user: User.find_by(username: 'ChartBot'),
+      raw: "Here is a link to the Finviz chart: #{link}"
+    )
   end
 end
