@@ -5,49 +5,17 @@
 # url: https://github.com/frold/discourse-image-bot
 
 after_initialize do
-  require_dependency 'post'
+  # If ChartBot user doesn't exist, create it
+  if User.find_by_username('ChartBot').nil?
+    user = User.create!(
+      id: -7, # the desired user ID
+      username: 'ChartBot',
+      email: 'chartbot@example.com',
+      name: 'ChartBot',
+      password: SecureRandom.hex(10),
+      active: true
+    )
 
-  module ::TickeridLinkPlugin
-    class Engine < ::Rails::Engine
-      engine_name 'tickerid_link_plugin'
-      isolate_namespace TickeridLinkPlugin
-    end
-  end
-
-  class ::Post
-    after_save :add_tickerid_link
-
-    def add_tickerid_link
-      tickerid = ''
-      tiden = ''
-      mentioned_users.each do |user|
-        if user.username == 'frold'
-          tickerid, tiden = extract_tickerid_and_tiden_from_mention(user)
-          break
-        end
-      end
-
-      if tickerid.present? && tiden.present?
-        link = "https://charts2.finviz.com/chart.ashx?t=#{tickerid}&ty=c&ta=0&p=#{tiden}&s=l"
-        topic_id = self.topic_id
-        user_id = self.user_id
-
-        Post.transaction do
-          reply = PostCreator.create!(
-            user_id: user_id,
-            topic_id: topic_id,
-            raw: link
-          )
-        end
-      end
-    end
-
-    private
-
-    def extract_tickerid_and_tiden_from_mention(user)
-      mention_text = user.mention.to_s.strip
-      _, tickerid, tiden = mention_text.match(/@frold\s+(\S+)\s+(\S+)/).to_a
-      [tickerid, tiden]
-    end
+    user.activate
   end
 end
