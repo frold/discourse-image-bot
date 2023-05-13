@@ -29,8 +29,16 @@ after_initialize do
 
       if tickerid.present? && tiden.present?
         link = "https://charts2.finviz.com/chart.ashx?t=#{tickerid}&ty=c&ta=0&p=#{tiden}&s=l"
-        self.raw += "\n\n#{link}"
-        self.save
+        topic_id = self.topic_id
+        user_id = self.user_id
+
+        Post.transaction do
+          reply = PostCreator.create!(
+            user_id: user_id,
+            topic_id: topic_id,
+            raw: link
+          )
+        end
       end
     end
 
