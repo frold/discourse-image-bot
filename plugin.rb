@@ -5,35 +5,41 @@
 # url: https://github.com/frold/discourse-image-bot
 
 after_initialize do
-  
-  bot = User.find_by(id: -07)
-    # Handles creation of bot if it doesn't exist
-    if !bot
-        response_username = "ChartBot"
-        response_name = "Vores Finviz Bot"
-    
-        # bot created
-        bot = User.new
-        bot.id = -07
-        bot.name = response_name
-        bot.username = response_username
-        bot.email = "responseBot@me.com"
-        bot.username_lower = response_username.downcase
-        bot.password = SecureRandom.hex
-        bot.active = true
-        bot.approved = true
-        bot.trust_level = TrustLevel[1]
+  require_dependency 'post'
+
+  module ::TickeridLinkPlugin
+    class Engine < ::Rails::Engine
+      engine_name 'tickerid_link_plugin'
+      isolate_namespace TickeridLinkPlugin
+    end
+  end
+
+  class ::Post
+    after_save :add_tickerid_link
+
+    def add_tickerid_link
+      tickerid = ''
+      tiden = ''
+      mentioned_users.each do |user|
+        if user.username == 'frold'
+          tickerid, tiden = extract_tickerid_and_tiden_from_mention(user)
+          break
+        end
+      end
+
+      if tickerid.present? && tiden.present?
+        link = "https://charts2.finviz.com/chart.ashx?t=#{tickerid}&ty=c&ta=0&p=#{tiden}&s=l"
+        self.raw += "\n\n#{link}"
+        self.save
+      end
     end
 
-on(:post_created) do |post, params|
-  if post.raw.match?(/@ChartBot\s+(\w+)\s+(\w+)/i)
-    tickerid = $1
-    tiden = $2
-    link = "https://charts2.finviz.com/chart.ashx?t=#{tickerid}&ty=c&ta=0&p=#{tiden}&s=l"
-    post.topic.posts.create!(
-      user: User.find_by(username: 'ChartBot'),
-      raw: "Here is a link to the Finviz chart: #{link}"
-    )
+    private
+
+    def extract_tickerid_and_tiden_from_mention(user)
+      mention_text = user.mention.to_s.strip
+      _, tickerid, tiden = mention_text.match(/@frold\s+(\S+)\s+(\S+)/).to_a
+      [tickerid, tiden]
+    end
   end
-end
 end
