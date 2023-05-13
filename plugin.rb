@@ -4,21 +4,6 @@
 # authors: Frederik Liljefred
 # url: https://github.com/frold/discourse-image-bot
 
-PLUGIN_NAME ||= "chartbot".freeze
-
-after_initialize do
-  User.create!(
-    id: '-09',
-    username: 'ChartBot',
-    name: 'Vores ChartBot',
-    email: 'chartbot@example.com',
-    password: SecureRandom.hex(10),
-    active: true,
-    approved: true,
-    trust_level: 'TrustLevel[1]'
-  )
-end
-
 on(:post_created) do |post, params|
   if post.raw.match?(/@ChartBot\s+(\w+)\s+(\w+)/i)
     tickerid = $1
