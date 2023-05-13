@@ -4,8 +4,7 @@
 # authors: Frederik Liljefred
 # url: https://github.com/frold/discourse-image-bot
 
-    bot = User.find_by(id: -07)
-
+  bot = User.find_by(id: -07)
     # Handles creation of bot if it doesn't exist
     if !bot
         response_username = "ChartBot"
@@ -23,6 +22,7 @@
         bot.approved = true
         bot.trust_level = TrustLevel[1]
     end
+ end
 
 on(:post_created) do |post, params|
   if post.raw.match?(/@ChartBot\s+(\w+)\s+(\w+)/i)
